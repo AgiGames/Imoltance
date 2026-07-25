@@ -3,10 +3,10 @@ import pandas as pd
 import os
 from typing import List
 
-from importance import get_importance
-from helper import train_test_split_csv
-from features import get_weighted_ev_df, get_weighted_ve_df
-from counter import get_bond_counts_df, get_element_counts_df
+from .importance import get_importance
+from .helper import train_test_split_csv
+from .features import get_weighted_ev_df, get_weighted_ve_df
+from .counter import get_bond_counts_df, get_element_counts_df
 
 class Imoltance:
     def __init__(self,

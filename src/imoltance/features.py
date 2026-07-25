@@ -3,7 +3,7 @@ from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors
 import pandas as pd
 from collections import Counter
 from typing import List
-import topology
+from .topology import compute_weighted_topological_indices
 
 def get_weighted_ve_df(
     smiles_dataset_path: str,
@@ -30,7 +30,7 @@ def get_weighted_ve_df(
         ids_and_elements = {atom.GetIdx(): atom for atom in mol.GetAtoms()}
         
         indices.append(
-            topology.compute_weighted_topological_indices(
+            compute_weighted_topological_indices(
                 ids_and_elements,
                 weights,
                 None,
@@ -67,7 +67,7 @@ def get_weighted_ev_df(
         ids_and_elements = {atom.GetIdx(): atom for atom in mol.GetAtoms()}
         
         indices.append(
-            topology.compute_weighted_topological_indices(
+            compute_weighted_topological_indices(
                 ids_and_elements,
                 None,
                 weights,
