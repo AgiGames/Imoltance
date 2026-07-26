@@ -1,3 +1,3 @@
-from src.imoltance.imoltance import Imoltance
+from .imoltance import Imoltance
 
 __all__ = ['Imoltance']
