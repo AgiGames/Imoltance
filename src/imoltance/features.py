@@ -1,8 +1,10 @@
+import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors
-import pandas as pd
-from collections import Counter
+
 from typing import List
+from collections import Counter
+
 from .topology import compute_weighted_topological_indices
 
 def get_weighted_ve_df(

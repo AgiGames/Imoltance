@@ -1,7 +1,8 @@
-from collections import deque
-from rdkit import Chem
-import math
 import pandas as pd
+from rdkit import Chem
+
+import math
+from collections import deque
 
 def dve(v: Chem.rdchem.Atom) -> int:
     neighborhood = set([v] + list(v.GetNeighbors()))
