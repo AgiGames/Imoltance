@@ -1,8 +1,6 @@
-import pandas as pd
 from rdkit import Chem
 
 import math
-from collections import deque
 
 def dve(v: Chem.rdchem.Atom) -> int:
     neighborhood = set([v] + list(v.GetNeighbors()))
@@ -65,20 +63,20 @@ def compute_weighted_ve_topological_indices(
             du = dve_map[u.GetIdx()] * weights[key_u]
             dv = dve_map[v.GetIdx()] * weights[key_v]
             
-            M1_alpha += (dv * dv)
+            M1_alpha += (du * du)
             M1_beta += (du + dv)
             M2 += (du * dv)
             HM1 += ((du + dv) ** 2)
             HM2 += ((du * dv) ** 2)
             F += (du ** 2 + dv ** 2)
-            F1 += (dv ** 3)
+            F1 += (du ** 3)
             ReZG3 += ((du * dv) * (du + dv))
             T += (du)
 
-            if dv != 0:
-                ID += (1 / dv)
-                ZD += (1 / (dv ** 0.5))
-                mM1 += (1 / (dv * dv))
+            if du != 0:
+                ID += (1 / du)
+                ZD += (1 / (du ** 0.5))
+                mM1 += (1 / (du * du))
 
             if du != 0 and dv != 0:
                 R += ((du * dv) ** -0.5)
@@ -91,44 +89,6 @@ def compute_weighted_ve_topological_indices(
             if (du + dv) != 0:
                 H += (2 / (du + dv))
                 X += ((du + dv) ** -0.5)
-            
-    return [M1_alpha, M1_beta, M2, R, ABC, GA, H, X, HM1, HM2, F, F1, ReZG3, AG, ISI, T, ID, ZD, mM1]
-
-def compute_ve_topological_indices(
-        ids_and_elements: dict[int, Chem.rdchem.Atom],
-        dve_map: dict[int, int]
-    ):
-    visited_edges = set()
-    M1_alpha = M1_beta = M2 = R = ABC = GA = H = X = HM1 = HM2 = F = F1 = ReZG3 = AG = ISI = T = ID = ZD = mM1 = 0
-    
-    for u in ids_and_elements.values(): # Iterate through all elements in the graph
-        for v in u.GetNeighbors(): # For each connection of the current element
-            edge = tuple(sorted((u.GetIdx(), v.GetIdx())))
-            if edge in visited_edges:
-                continue
-
-            du = dve_map[u.GetIdx()]
-            dv = dve_map[v.GetIdx()]
-            
-            M1_alpha += (dv * dv)
-            M1_beta += (du + dv)
-            M2 += (du * dv)
-            R += ((du * dv) ** -0.5)
-            ABC += math.sqrt((du + dv - 2) / (du * dv))
-            GA += ((2 * math.sqrt(du * dv)) / (du + dv))
-            H += (2 / (du + dv))
-            X += ((du + dv) ** -0.5)
-            HM1 += ((du + dv) ** 2)
-            HM2 += ((du * dv) ** 2)
-            F += (du ** 2 + dv ** 2)
-            F1 += (dv ** 3)
-            ReZG3 += ((du * dv) * (du + dv))
-            AG += ((du + dv) / (2 * math.sqrt(du * dv)))
-            ISI += ((du * dv) / (du + dv))
-            T += (du)
-            ID += (1 / dv)
-            ZD += (1 / (dv ** 0.5))
-            mM1 += (1 / (dv * dv))
             
     return [M1_alpha, M1_beta, M2, R, ABC, GA, H, X, HM1, HM2, F, F1, ReZG3, AG, ISI, T, ID, ZD, mM1]
 
@@ -147,6 +107,7 @@ def compute_weighted_ev_topological_indices(
             edge = tuple(sorted((u.GetIdx(), v.GetIdx())))
             if edge in visited_edges:
                 continue
+            visited_edges.add(edge)
             edge_symbs = tuple(sorted((u.GetSymbol(), v.GetSymbol())))
             bond_type = mol.GetBondBetweenAtoms(edge[0], edge[1])
             key = f'{edge_symbs[0]}-{bond_type.GetBondType()}-{bond_type.GetStereo()}-{edge_symbs[1]}'
@@ -165,6 +126,59 @@ def compute_weighted_ev_topological_indices(
             RR += (dev ** 0.5)
     
     return [T, M, F, mM, ID, R, RR]
+
+def compute_weighted_topological_indices(
+        ids_and_elements: dict[int, Chem.rdchem.Atom],
+        ve_weights: dict[str, float],
+        ev_weights: dict[str, float],
+        mol: Chem.rdchem.Mol
+    ):
+    result = []
+    if ve_weights is not None:
+        dve_map = compute_dve_map(ids_and_elements)
+        result = result + compute_weighted_ve_topological_indices(ids_and_elements, dve_map, ve_weights)
+    if ev_weights is not None:
+        dev_map = compute_dev_map(ids_and_elements)
+        result = result + compute_weighted_ev_topological_indices(ids_and_elements, dev_map, ev_weights, mol)
+    return result
+
+def compute_ve_topological_indices(
+        ids_and_elements: dict[int, Chem.rdchem.Atom],
+        dve_map: dict[int, int]
+    ):
+    visited_edges = set()
+    M1_alpha = M1_beta = M2 = R = ABC = GA = H = X = HM1 = HM2 = F = F1 = ReZG3 = AG = ISI = T = ID = ZD = mM1 = 0
+    
+    for u in ids_and_elements.values(): # Iterate through all elements in the graph
+        for v in u.GetNeighbors(): # For each connection of the current element
+            edge = tuple(sorted((u.GetIdx(), v.GetIdx())))
+            if edge in visited_edges:
+                continue
+
+            du = dve_map[u.GetIdx()]
+            dv = dve_map[v.GetIdx()]
+            
+            M1_alpha += (du * du)
+            M1_beta += (du + dv)
+            M2 += (du * dv)
+            R += ((du * dv) ** -0.5)
+            ABC += math.sqrt((du + dv - 2) / (du * dv))
+            GA += ((2 * math.sqrt(du * dv)) / (du + dv))
+            H += (2 / (du + dv))
+            X += ((du + dv) ** -0.5)
+            HM1 += ((du + dv) ** 2)
+            HM2 += ((du * dv) ** 2)
+            F += (du ** 2 + dv ** 2)
+            F1 += (du ** 3)
+            ReZG3 += ((du * dv) * (du + dv))
+            AG += ((du + dv) / (2 * math.sqrt(du * dv)))
+            ISI += ((du * dv) / (du + dv))
+            T += (du)
+            ID += (1 / du)
+            ZD += (1 / (du ** 0.5))
+            mM1 += (1 / (du * du))
+            
+    return [M1_alpha, M1_beta, M2, R, ABC, GA, H, X, HM1, HM2, F, F1, ReZG3, AG, ISI, T, ID, ZD, mM1]
 
 def compute_ev_topological_indices(ids_and_elements: dict[int, Chem.rdchem.Atom], dev_map: dict[int, int]):
     visited_edges = set()
@@ -201,19 +215,4 @@ def compute_topological_indices(
     if include_ev:
         dev_map = compute_dev_map(ids_and_elements)
         result = result + compute_ev_topological_indices(ids_and_elements, dev_map)
-    return result
-
-def compute_weighted_topological_indices(
-        ids_and_elements: dict[int, Chem.rdchem.Atom],
-        ve_weights: dict[str, float],
-        ev_weights: dict[str, float],
-        mol: Chem.rdchem.Mol
-    ):
-    result = []
-    if ve_weights is not None:
-        dve_map = compute_dve_map(ids_and_elements)
-        result = result + compute_weighted_ve_topological_indices(ids_and_elements, dve_map, ve_weights)
-    if ev_weights is not None:
-        dev_map = compute_dev_map(ids_and_elements)
-        result = result + compute_weighted_ev_topological_indices(ids_and_elements, dev_map, ev_weights, mol)
     return result
